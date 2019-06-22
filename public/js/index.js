@@ -5,10 +5,6 @@ if (editor) {
     mountMarkdown(editor.value, outputNode);
     //添加listener
     editor.addEventListener("input", () => {
-            //remove old children node
-            for (const childNode of outputNode.childNodes) {
-                outputNode.removeChild(childNode);
-            }
             mountMarkdown(editor.value, outputNode);
         }
     )

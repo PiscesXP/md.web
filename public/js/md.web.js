@@ -5,8 +5,8 @@ const textTypeArray = [
     {md: "###", html: "h3"},
 ];
 const inlineTypeArray = [
-    {md: "*", html: "strong"},
-    {md: "**", html: "strong"},
+    {md: "\\*", html: "strong"},
+    {md: "\\*\\*", html: "strong"},
     {md: "_", html: "strong"},
     {md: "__", html: "strong"},
 ];
@@ -14,9 +14,20 @@ const inlineTypeArray = [
 /**
  * 转换markdown文本，并append到html node上。
  * */
-function mountMarkdown(markDownText, htmlNode) {
-    const mdNode = mdText2Html(markDownText);
-    htmlNode.appendChild(mdNode);
+function mountMarkdown(markDownText, htmlNode, removeOld = true) {
+    const contentNodeID = "markDownContent";
+    const contentNode = document.createElement("div");
+    contentNode.id = contentNodeID;
+    if (removeOld) {
+        for (const childNode of htmlNode.childNodes) {
+            if(childNode.id===contentNodeID){
+                htmlNode.removeChild(childNode);
+            }
+        }
+    }
+    const markdownNode = mdText2Html(markDownText);
+    contentNode.appendChild(markdownNode);
+    htmlNode.appendChild(contentNode);
 }
 
 /**
@@ -48,10 +59,39 @@ function mdText2Html(mdText) {
                         break;
                     }
                 }
+                //添加到rootNode
+                if (htmlTagName !== null) {
+                    const el = document.createElement(htmlTagName);
+                    el.innerText = htmlContent;
+                    rootNode.appendChild(el);
+                    console.debug(`Add ${htmlTagName}, content:${htmlContent}`);
+                }
             }
             if (htmlTagName === null) {
                 //常规文本(其中可能含有加粗等等标签)
-                htmlTagName = "p";
+                const el = document.createElement("p");
+                let remainContent = line; //剩余要处理的内容
+                while (remainContent !== "") {
+                    for (const type of inlineTypeArray) {
+                        const regexp = new RegExp(
+                            "^(.*?[^\\\\]?)(" + type.md + ")(.*?)\\2(.*)$");
+                        const results = regexp.exec(remainContent);
+                        if (results) {
+                            const content = results[3];
+                            console.debug(`Found md type:${type.md}, content:${content}`);
+                            const typedElement = document.createElement(type.html);
+                            typedElement.innerText = content;
+                            el.append(results[1]);  //前面的文本
+                            el.appendChild(typedElement);
+                            remainContent = results[4];
+                            break;
+                        }
+                    }
+                    el.append(remainContent);
+                    remainContent = "";
+                }
+                rootNode.appendChild(el);
+                /*
                 const regexpBold = /^(.*)(\*{1,2})([^\*]*?)\2(.*)$/;
                 const matchResults = regexpBold.exec(line);
                 if (matchResults) {
@@ -71,21 +111,16 @@ function mdText2Html(mdText) {
                     const afterText = matchResults[4];
                     const afterTextNode = document.createElement("p");
                     afterTextNode.innerText = afterText;
-                    beforeTextNode.appendChild(afterTextNode);
+                    //beforeTextNode.appendChild(afterTextNode);
+                    beforeTextNode.append("qwer");
 
 
                     //TODO delete this
                     htmlContent = null;
                 } else {
                     htmlContent = line;
-                }
-            }
-            //添加到rootNode
-            if (htmlContent !== null) {
-                const el = document.createElement(htmlTagName);
-                el.innerText = htmlContent;
-                rootNode.appendChild(el);
-                console.debug(`Add ${htmlTagName}, content:${htmlContent}`);
+                }*/
+
             }
         }
     }
