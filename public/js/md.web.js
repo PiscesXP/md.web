@@ -1,18 +1,4 @@
-'use strict'
-const textTypeArray = [
-    {md: "#", html: "h1"},
-    {md: "##", html: "h2"},
-    {md: "###", html: "h3"},
-    {md: "####", html: "h4"},
-    {md: "#####", html: "h5"},
-    {md: "######", html: "h6"},
-];
-const inlineTypeArray = [
-    {md: "\\*\\*", html: "i"},
-    {md: "__", html: "i"},
-    {md: "\\*", html: "strong"},
-    {md: "_", html: "strong"},
-];
+'use strict';
 
 /**
  * 转换markdown文本，并append到html node上。
@@ -34,56 +20,42 @@ function mountMarkdown(markDownText, htmlNode, removeOld = true) {
 }
 
 /**
- * @return Html dom of the content
+ * @return HTMLDivElement dom of the content
  * */
 function mdText2Html(mdText) {
     const rootNode = document.createElement("div");
     if (typeof mdText === "string") {
         let isNextNewLine = false;
         for (const line of mdText.split("\n")) {
-            if (line === "") {
-                if (isNextNewLine) {
-                    rootNode.appendChild(document.createElement("br"));
-                }
-                isNextNewLine = !isNextNewLine;
-            }
-            //先声明要添加的html node
-            let htmlTagName = null;
-            let htmlContent = null;
-            //使用正则进行匹配
-            const regexp = /^(.*?) (.*)$/;
-            const matchResults = regexp.exec(line);
-            if (matchResults && matchResults[2] !== "") {
-                //带有标签的文本
-                htmlContent = matchResults[2];
-                for (const type of textTypeArray) {
-                    if (matchResults[1] === type.md) {
-                        htmlTagName = type.html;
-                        break;
-                    }
-                }
-                //添加到rootNode
-                if (htmlTagName !== null) {
-                    const el = document.createElement(htmlTagName);
-                    el.innerText = htmlContent;
-                    rootNode.appendChild(el);
-                    //console.debug(`Add ${htmlTagName}, content:${htmlContent}`);
-                }
-            }
-            if (htmlTagName === null) {
-                //常规文本(其中可能含有加粗等等标签)
-                const el = document.createElement("p");
-                parseInlineText(line, el);
-                rootNode.appendChild(el);
-
-            }
+            rootNode.appendChild(parseALineText(line));
         }
     }
     return rootNode
 }
 
 /**
- * 解析text，并将结果追加到parentNode.
+ * 解析一整行
+ * @return HTMLElement
+ * */
+function parseALineText(text) {
+    const regexpHeadings = /^(#{1,6})\s(.*)$/
+    if (regexpHeadings.test(text)) {
+        //h1-h6
+        const {1: sharpString, 2: headingText} = regexpHeadings.exec(text);
+        const hNode = document.createElement(`h${sharpString.length}`);
+        hNode.innerText = headingText;
+        return hNode;
+    }
+    else {
+        const pNode = document.createElement("p");
+        parseInlineText(text, pNode);
+        return pNode;
+    }
+}
+
+
+/**
+ * 解析一行里的一部分text，并将结果追加到parentNode.
  * @return undefined
  * */
 function parseInlineText(text, parentNode) {
@@ -131,6 +103,7 @@ function parseInlineText(text, parentNode) {
                 const linkNode = document.createElement("a");
                 linkNode.href = src;
                 linkNode.innerText = altText;
+                linkNode.target = "_blank"; //使用新标签打开
                 parentNode.append(linkNode);
             }
             //处理后面的文字
