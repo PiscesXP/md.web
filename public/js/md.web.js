@@ -5,10 +5,10 @@ const textTypeArray = [
     {md: "###", html: "h3"},
 ];
 const inlineTypeArray = [
+    {md: "\\*\\*", html: "i"},
+    {md: "__", html: "i"},
     {md: "\\*", html: "strong"},
-    {md: "\\*\\*", html: "strong"},
     {md: "_", html: "strong"},
-    {md: "__", html: "strong"},
 ];
 
 /**
@@ -20,7 +20,7 @@ function mountMarkdown(markDownText, htmlNode, removeOld = true) {
     contentNode.id = contentNodeID;
     if (removeOld) {
         for (const childNode of htmlNode.childNodes) {
-            if(childNode.id===contentNodeID){
+            if (childNode.id === contentNodeID) {
                 htmlNode.removeChild(childNode);
             }
         }
@@ -72,23 +72,43 @@ function mdText2Html(mdText) {
                 const el = document.createElement("p");
                 let remainContent = line; //剩余要处理的内容
                 while (remainContent !== "") {
+                    console.debug(`Parsing remain:${remainContent}`);
+
+                    let nearestMatchedTypeInfo = null; //离开头最近的一个
                     for (const type of inlineTypeArray) {
                         const regexp = new RegExp(
                             "^(.*?[^\\\\]?)(" + type.md + ")(.*?)\\2(.*)$");
-                        const results = regexp.exec(remainContent);
-                        if (results) {
-                            const content = results[3];
-                            console.debug(`Found md type:${type.md}, content:${content}`);
-                            const typedElement = document.createElement(type.html);
-                            typedElement.innerText = content;
-                            el.append(results[1]);  //前面的文本
-                            el.appendChild(typedElement);
-                            remainContent = results[4];
-                            break;
+                        const matchResults = regexp.exec(remainContent);
+                        if (matchResults) {
+                            //比较，如果离开头更近就用它
+                            if (nearestMatchedTypeInfo === null ||
+                                matchResults[1].length < nearestMatchedTypeInfo.matchResults[1].length) {
+                                nearestMatchedTypeInfo = {
+                                    type,
+                                    matchResults
+                                }
+                            }
                         }
                     }
-                    el.append(remainContent);
-                    remainContent = "";
+
+
+                    if (nearestMatchedTypeInfo !== null) {
+                        //
+                        const {type, matchResults} = nearestMatchedTypeInfo;
+                        const content = matchResults[3];
+                        console.debug(`Found md type:${type.md}, content:${content}`);
+                        const typedElement = document.createElement(type.html);
+                        typedElement.innerText = content;
+                        el.append(matchResults[1]);  //前面的文本
+                        el.appendChild(typedElement);
+                        remainContent = matchResults[4];
+
+                    } else {
+                        //只剩下纯文本
+                        el.append(remainContent);
+                        remainContent = "";
+                    }
+
                 }
                 rootNode.appendChild(el);
                 /*
