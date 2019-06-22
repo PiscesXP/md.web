@@ -3,6 +3,9 @@ const textTypeArray = [
     {md: "#", html: "h1"},
     {md: "##", html: "h2"},
     {md: "###", html: "h3"},
+    {md: "####", html: "h4"},
+    {md: "#####", html: "h5"},
+    {md: "######", html: "h6"},
 ];
 const inlineTypeArray = [
     {md: "\\*\\*", html: "i"},
@@ -70,6 +73,8 @@ function mdText2Html(mdText) {
             if (htmlTagName === null) {
                 //常规文本(其中可能含有加粗等等标签)
                 const el = document.createElement("p");
+                parseInlineText(line, el);
+                /*
                 let remainContent = line; //剩余要处理的内容
                 while (remainContent !== "") {
                     console.debug(`Parsing remain:${remainContent}`);
@@ -110,6 +115,8 @@ function mdText2Html(mdText) {
                     }
 
                 }
+
+                 */
                 rootNode.appendChild(el);
 
             }
@@ -124,13 +131,17 @@ function mdText2Html(mdText) {
  * */
 function parseInlineText(text, parentNode) {
     const inlineTypeList = [
-        {md: "\\*\\*", html: "i"}
+        {md: "\\*\\*", html: "i"},
+        {md: "__", html: "i"},
+        {md: "\\*", html: "strong"},
+        {md: "_", html: "strong"},
     ];
     //逐个查找匹配的类型
     let nearestMatchedTypeInfo = null; //离开头最近的一个
     for (const inlineType of inlineTypeList) {
+        //这里不考虑转义
         const regexp = new RegExp(
-            "^(.*?[^\\\\])(?!\\\\)(" + type.md + ")(.*?)\\2(.*)$");
+            "^(.*?[^\\\\])(" + inlineType.md + ")(.*?[^\\\\])\\2(.*)$");
         const matchResults = regexp.exec(text);
         if (matchResults) {
             //比较，如果离开头更近就用它
@@ -142,15 +153,25 @@ function parseInlineText(text, parentNode) {
                 }
             }
         }
+
     }
     if (nearestMatchedTypeInfo === null) {
         //未找到匹配
+        console.debug(`Non inline text found.`);
+        //把转义字符替换掉
+        const regexp = /\\(.)/g;
+
+        text = text.replace(regexp, "$1");
         parentNode.append(text);
     } else {
         //已找到匹配，加入html node并继续
-        parentNode.append(nearestMatchedTypeInfo.matchResults[1]);
-        const newNode = document.createElement(nearestMatchedTypeInfo.inlineType);
+        console.debug(`Inline text found:${nearestMatchedTypeInfo.inlineType.html}`);
+        console.debug(`Inline text content:${nearestMatchedTypeInfo.matchResults[3]}`);
+        //parentNode.append(nearestMatchedTypeInfo.matchResults[1]);
+        parseInlineText(nearestMatchedTypeInfo.matchResults[1], parentNode);
+        const newNode = document.createElement(nearestMatchedTypeInfo.inlineType.html);
         parseInlineText(nearestMatchedTypeInfo.matchResults[3], newNode);
         parentNode.appendChild(newNode);
+        parseInlineText(nearestMatchedTypeInfo.matchResults[4], parentNode);
     }
 }
