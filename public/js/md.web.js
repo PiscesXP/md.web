@@ -67,56 +67,13 @@ function mdText2Html(mdText) {
                     const el = document.createElement(htmlTagName);
                     el.innerText = htmlContent;
                     rootNode.appendChild(el);
-                    console.debug(`Add ${htmlTagName}, content:${htmlContent}`);
+                    //console.debug(`Add ${htmlTagName}, content:${htmlContent}`);
                 }
             }
             if (htmlTagName === null) {
                 //常规文本(其中可能含有加粗等等标签)
                 const el = document.createElement("p");
                 parseInlineText(line, el);
-                /*
-                let remainContent = line; //剩余要处理的内容
-                while (remainContent !== "") {
-                    console.debug(`Parsing remain:${remainContent}`);
-
-                    let nearestMatchedTypeInfo = null; //离开头最近的一个
-                    for (const type of inlineTypeArray) {
-                        const regexp = new RegExp(
-                            "^(.*?[^\\\\])(?!\\\\)(" + type.md + ")(.*?)\\2(.*)$");
-                        const matchResults = regexp.exec(remainContent);
-                        if (matchResults) {
-                            //比较，如果离开头更近就用它
-                            if (nearestMatchedTypeInfo === null ||
-                                matchResults[1].length < nearestMatchedTypeInfo.matchResults[1].length) {
-                                nearestMatchedTypeInfo = {
-                                    type,
-                                    matchResults
-                                }
-                            }
-                        }
-                    }
-
-
-                    if (nearestMatchedTypeInfo !== null) {
-                        //
-                        const {type, matchResults} = nearestMatchedTypeInfo;
-                        const content = matchResults[3];
-                        console.debug(`Found md type:${type.md}, content:${content}`);
-                        const typedElement = document.createElement(type.html);
-                        typedElement.innerText = content;
-                        el.append(matchResults[1]);  //前面的文本
-                        el.appendChild(typedElement);
-                        remainContent = matchResults[4];
-
-                    } else {
-                        //只剩下纯文本
-                        el.append(remainContent);
-                        remainContent = "";
-                    }
-
-                }
-
-                 */
                 rootNode.appendChild(el);
 
             }
@@ -157,7 +114,7 @@ function parseInlineText(text, parentNode) {
     }
     if (nearestMatchedTypeInfo === null) {
         //未找到匹配
-        console.debug(`Non inline text found.`);
+        //console.debug(`Non inline text found.`);
         //把转义字符替换掉
         const regexp = /\\(.)/g;
 
@@ -165,8 +122,8 @@ function parseInlineText(text, parentNode) {
         parentNode.append(text);
     } else {
         //已找到匹配，加入html node并继续
-        console.debug(`Inline text found:${nearestMatchedTypeInfo.inlineType.html}`);
-        console.debug(`Inline text content:${nearestMatchedTypeInfo.matchResults[3]}`);
+        //console.debug(`Inline text found:${nearestMatchedTypeInfo.inlineType.html}`);
+        //console.debug(`Inline text content:${nearestMatchedTypeInfo.matchResults[3]}`);
         //parentNode.append(nearestMatchedTypeInfo.matchResults[1]);
         parseInlineText(nearestMatchedTypeInfo.matchResults[1], parentNode);
         const newNode = document.createElement(nearestMatchedTypeInfo.inlineType.html);
