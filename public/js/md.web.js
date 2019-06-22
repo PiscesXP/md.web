@@ -77,7 +77,7 @@ function mdText2Html(mdText) {
                     let nearestMatchedTypeInfo = null; //离开头最近的一个
                     for (const type of inlineTypeArray) {
                         const regexp = new RegExp(
-                            "^(.*?[^\\\\]?)(" + type.md + ")(.*?)\\2(.*)$");
+                            "^(.*?[^\\\\])(?!\\\\)(" + type.md + ")(.*?)\\2(.*)$");
                         const matchResults = regexp.exec(remainContent);
                         if (matchResults) {
                             //比较，如果离开头更近就用它
@@ -111,38 +111,46 @@ function mdText2Html(mdText) {
 
                 }
                 rootNode.appendChild(el);
-                /*
-                const regexpBold = /^(.*)(\*{1,2})([^\*]*?)\2(.*)$/;
-                const matchResults = regexpBold.exec(line);
-                if (matchResults) {
-                    console.debug("Found bold text");
-                    //before text
-                    const beforeText = matchResults[1];
-                    const beforeTextNode = document.createElement("p");
-                    beforeTextNode.innerText = beforeText;
-                    rootNode.appendChild(beforeTextNode);
-                    //bold
-                    const boldText = matchResults[3];
-                    const boldNode = document.createElement("strong");
-                    boldNode.innerText = boldText;
-                    //rootNode.appendChild(boldNode);
-                    beforeTextNode.appendChild(boldNode);
-                    //after text
-                    const afterText = matchResults[4];
-                    const afterTextNode = document.createElement("p");
-                    afterTextNode.innerText = afterText;
-                    //beforeTextNode.appendChild(afterTextNode);
-                    beforeTextNode.append("qwer");
-
-
-                    //TODO delete this
-                    htmlContent = null;
-                } else {
-                    htmlContent = line;
-                }*/
 
             }
         }
     }
     return rootNode
+}
+
+/**
+ * 解析text，并将结果追加到parentNode.
+ * @return undefined
+ * */
+function parseInlineText(text, parentNode) {
+    const inlineTypeList = [
+        {md: "\\*\\*", html: "i"}
+    ];
+    //逐个查找匹配的类型
+    let nearestMatchedTypeInfo = null; //离开头最近的一个
+    for (const inlineType of inlineTypeList) {
+        const regexp = new RegExp(
+            "^(.*?[^\\\\])(?!\\\\)(" + type.md + ")(.*?)\\2(.*)$");
+        const matchResults = regexp.exec(text);
+        if (matchResults) {
+            //比较，如果离开头更近就用它
+            if (nearestMatchedTypeInfo === null ||
+                matchResults[1].length < nearestMatchedTypeInfo.matchResults[1].length) {
+                nearestMatchedTypeInfo = {
+                    inlineType,
+                    matchResults
+                }
+            }
+        }
+    }
+    if (nearestMatchedTypeInfo === null) {
+        //未找到匹配
+        parentNode.append(text);
+    } else {
+        //已找到匹配，加入html node并继续
+        parentNode.append(nearestMatchedTypeInfo.matchResults[1]);
+        const newNode = document.createElement(nearestMatchedTypeInfo.inlineType);
+        parseInlineText(nearestMatchedTypeInfo.matchResults[3], newNode);
+        parentNode.appendChild(newNode);
+    }
 }
