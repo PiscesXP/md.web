@@ -114,17 +114,37 @@ function parseInlineText(text, parentNode) {
     }
     if (nearestMatchedTypeInfo === null) {
         //未找到匹配
-        //console.debug(`Non inline text found.`);
-        //把转义字符替换掉
-        const regexp = /\\(.)/g;
-
-        text = text.replace(regexp, "$1");
-        parentNode.append(text);
+        //处理链接、图片
+        const linkRegexp = /^(.*?)([!]?)\[(.*?)]\((.*?)\)(.*)$/;
+        if (linkRegexp.test(text)) {
+            const [shit, beforeText, imgPrefix, altText, src, afterText, ...rest] = linkRegexp.exec(text);
+            //处理前面的文字
+            parseInlineText(beforeText, parentNode);
+            if (imgPrefix === "!") {
+                //图片
+                const imgNode = document.createElement("img");
+                imgNode.src = src;
+                imgNode.alt = altText;
+                parentNode.append(imgNode);
+            } else {
+                //链接
+                const linkNode = document.createElement("a");
+                linkNode.href = src;
+                linkNode.innerText = altText;
+                parentNode.append(linkNode);
+            }
+            //处理后面的文字
+            parseInlineText(afterText, parentNode);
+        } else {
+            //console.debug(`Non inline text found.`);
+            //把转义字符替换掉
+            text = text.replace(/\\(.)/g, "$1");
+            parentNode.append(text);
+        }
     } else {
         //已找到匹配，加入html node并继续
         //console.debug(`Inline text found:${nearestMatchedTypeInfo.inlineType.html}`);
         //console.debug(`Inline text content:${nearestMatchedTypeInfo.matchResults[3]}`);
-        //parentNode.append(nearestMatchedTypeInfo.matchResults[1]);
         parseInlineText(nearestMatchedTypeInfo.matchResults[1], parentNode);
         const newNode = document.createElement(nearestMatchedTypeInfo.inlineType.html);
         parseInlineText(nearestMatchedTypeInfo.matchResults[3], newNode);
